@@ -7,6 +7,9 @@ http://finance.sina.com.cn/stock/usstock/sector.shtml
 """
 import json
 
+import sys
+sys.path.append(r'D:\docs\github_repo\akshare')
+
 import asyncio
 import aiohttp
 import time
@@ -108,20 +111,19 @@ async def _get_us_stock_name_async(request_per_batch: int = 15) -> pd.DataFrame:
         finished_pages = []
         while len(finished_pages) < page_count:
             to_req_pages = [x for x in all_pages if x not in finished_pages]
-            request_per_batch = min(request_per_batch, len(to_req_pages))
+            req_per_batch = min(request_per_batch, len(to_req_pages))
             tasks = {}
             for page in to_req_pages:
-                if len(tasks) < request_per_batch:
-                    us_js_decode = f"US_CategoryService.getList?page={page}&num={count_per_page}&sort=&asc=0&market=&id="
-                    js_code = py_mini_racer.MiniRacer()
-                    js_code.eval(js_hash_text)
-                    dict_list = js_code.call("d", us_js_decode)  # 执行js解密代码
-                    us_sina_stock_dict_payload.update({"page": "{}".format(page)})
-                    tasks[page] = asyncio.create_task(
-                        request(us_sina_stock_list_url.format(dict_list), us_sina_stock_dict_payload)
-                    )
+                us_js_decode = f"US_CategoryService.getList?page={page}&num={count_per_page}&sort=&asc=0&market=&id="
+                js_code = py_mini_racer.MiniRacer()
+                js_code.eval(js_hash_text)
+                dict_list = js_code.call("d", us_js_decode)  # 执行js解密代码
+                us_sina_stock_dict_payload.update({"page": "{}".format(page)})
+                tasks[page] = asyncio.create_task(
+                    request(us_sina_stock_list_url.format(dict_list), us_sina_stock_dict_payload.copy())
+                )
+                if len(tasks) < req_per_batch:
                     continue
-
                 # n requests per aio loop
                 for _, task in tasks.items():
                     await task
@@ -159,6 +161,7 @@ def stock_us_spot() -> pd.DataFrame:
     """
     big_df = pd.DataFrame()
     page_count = get_us_page_count()
+    page_count = 1
     for page in tqdm(range(1, page_count + 1)):
         # page = "1"
         us_js_decode = "US_CategoryService.getList?page={}&num=20&sort=&asc=0&market=&id=".format(
@@ -270,20 +273,21 @@ def stock_us_fundamental(stock="GOOGL", symbol="info"):
 
 
 if __name__ == "__main__":
-    stock_us_stock_name_df = get_us_stock_name()
-    print(stock_us_stock_name_df)
+    # stock_us_stock_name_df = get_us_stock_name()
+    # print(stock_us_stock_name_df)
 
-    stock_us_stock_name_async_df = get_us_stock_name_async()
-    print(stock_us_stock_name_async_df)
+    # stock_us_stock_name_async_df = get_us_stock_name_async()
+    # print(stock_us_stock_name_async_df)
 
     stock_us_spot_df = stock_us_spot()
-    print(stock_us_spot_df)
-    stock_us_daily_df = stock_us_daily(symbol="AMZN", adjust="")
-    print(stock_us_daily_df)
-    stock_us_daily_qfq_df = stock_us_daily(symbol="AAPL", adjust="qfq")
-    print(stock_us_daily_qfq_df)
-    stock_us_daily_qfq_factor_df = stock_us_daily(symbol="AAPL", adjust="qfq-factor")
-    print(stock_us_daily_qfq_factor_df)
+    # stock_us_spot_df.to_csv(r'D:\docs\github_repo\akshare\last_15min.csv', encoding='utf-8-sig', index='mktcap')
+    # print(stock_us_spot_df)
+    # stock_us_daily_df = stock_us_daily(symbol="AMZN", adjust="")
+    # print(stock_us_daily_df)
+    # stock_us_daily_qfq_df = stock_us_daily(symbol="AAPL", adjust="qfq")
+    # print(stock_us_daily_qfq_df)
+    # stock_us_daily_qfq_factor_df = stock_us_daily(symbol="AAPL", adjust="qfq-factor")
+    # print(stock_us_daily_qfq_factor_df)
 
-    stock_us_fundamental_df = stock_us_fundamental(stock="GOOGL", symbol="PB")
-    print(stock_us_fundamental_df)
+    # stock_us_fundamental_df = stock_us_fundamental(stock="GOOGL", symbol="PB")
+    # print(stock_us_fundamental_df)
